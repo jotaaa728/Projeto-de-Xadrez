@@ -4,8 +4,15 @@ import board.Position;
 import board.Board;
 
 public class Pawn extends ChessPiece {
+    private ChessMatch chessMatch;
+
     public Pawn(Board board, Color color) {
+        this(board, color, null);
+    }
+
+    public Pawn(Board board, Color color, ChessMatch chessMatch) {
         super(board, color);
+        this.chessMatch = chessMatch;
     }
 
     @Override
@@ -36,12 +43,27 @@ public class Pawn extends ChessPiece {
             mat[p.getRow()][p.getColumn()] = true;
         }
 
-        // en passant capture
-        board.Position left = new board.Position(position.getRow(), position.getColumn() - 1);
-        if (board.positionExists(left)) {
-            ChessPiece pleft = (ChessPiece) board.piece(left);
-            if (pleft != null && pleft instanceof Pawn && pleft.getColor() != getColor() && ((ChessMatch) null instanceof ChessMatch)) {
-                // placeholder, real check handled in ChessMatch when exposing enPassantVulnerable
+        // en passant
+        int enPassantRow = (getColor() == Color.WHITE) ? 3 : 4;
+        if (chessMatch != null && position.getRow() == enPassantRow) {
+            Position left = new Position(position.getRow(), position.getColumn() - 1);
+            if (board.positionExists(left)) {
+                ChessPiece leftPiece = (ChessPiece) board.piece(left);
+                if (leftPiece != null
+                        && leftPiece.getColor() != getColor()
+                        && leftPiece == chessMatch.getEnPassantVulnerable()) {
+                    mat[left.getRow() + dir][left.getColumn()] = true;
+                }
+            }
+
+            Position right = new Position(position.getRow(), position.getColumn() + 1);
+            if (board.positionExists(right)) {
+                ChessPiece rightPiece = (ChessPiece) board.piece(right);
+                if (rightPiece != null
+                        && rightPiece.getColor() != getColor()
+                        && rightPiece == chessMatch.getEnPassantVulnerable()) {
+                    mat[right.getRow() + dir][right.getColumn()] = true;
+                }
             }
         }
 
