@@ -62,31 +62,31 @@ public class ChessMatch {
 
         ChessPiece movedPiece = (ChessPiece) board.piece(target);
 
-        // promotion
-        promoted = null;
-        if (movedPiece instanceof Pawn) {
-            if ((movedPiece.getColor() == Color.WHITE && target.getRow() == 0) ||
-                (movedPiece.getColor() == Color.BLACK && target.getRow() == 7)) {
-                promoted = movedPiece;
-                ChessPiece queen = new Queen(board, movedPiece.getColor());
-                queen.setPosition(movedPiece.getPosition());
-                board.removePiece(target);
-                board.placePiece(queen, target);
-                piecesOnBoard.remove(movedPiece);
-                piecesOnBoard.add(queen);
-            }
-        }
-
-        check = testCheck(opponent(currentPlayer));
-
         if (testCheck(currentPlayer)) {
             undoMove(source, target, capturedPiece);
             throw new ChessException("You can't put yourself in check");
         }
 
+        // promotion
+        promoted = null;
+        if (movedPiece instanceof Pawn) {
+            if ((movedPiece.getColor() == Color.WHITE && target.getRow() == 0) ||
+                (movedPiece.getColor() == Color.BLACK && target.getRow() == 7)) {
+                ChessPiece queen = new Queen(board, movedPiece.getColor());
+                board.removePiece(target);
+                board.placePiece(queen, target);
+                piecesOnBoard.remove(movedPiece);
+                piecesOnBoard.add(queen);
+                promoted = queen;
+            }
+        }
+
+        check = testCheck(opponent(currentPlayer));
+
         if (testCheckMate(opponent(currentPlayer))) {
             checkMate = true;
         } else {
+            checkMate = false;
             nextTurn();
         }
 
@@ -287,24 +287,41 @@ public class ChessMatch {
         if (promoted == null) {
             throw new ChessException("There is no piece to be promoted");
         }
+
         Position pos = promoted.getPosition();
-        Piece p = board.removePiece(pos);
-        piecesOnBoard.remove(promoted);
+        Color promotedColor = promoted.getColor();
+        ChessPiece pieceToReplace = (ChessPiece) board.removePiece(pos);
+        piecesOnBoard.remove(pieceToReplace);
+
         ChessPiece newPiece;
         if (type.equals("Q")) {
-            newPiece = new Queen(board, promoted.getColor());
+            newPiece = new Queen(board, promotedColor);
         } else if (type.equals("R")) {
-            newPiece = new Rook(board, promoted.getColor());
+            newPiece = new Rook(board, promotedColor);
         } else if (type.equals("B")) {
-            newPiece = new Bishop(board, promoted.getColor());
+            newPiece = new Bishop(board, promotedColor);
         } else if (type.equals("N")) {
-            newPiece = new Knight(board, promoted.getColor());
+            newPiece = new Knight(board, promotedColor);
         } else {
-            newPiece = new Queen(board, promoted.getColor());
+            newPiece = new Queen(board, promotedColor);
         }
+
         board.placePiece(newPiece, pos);
         piecesOnBoard.add(newPiece);
         promoted = newPiece;
+
+        Color opponentColor = opponent(promotedColor);
+        boolean wasCheckMate = checkMate;
+        check = testCheck(opponentColor);
+        checkMate = testCheckMate(opponentColor);
+
+        if (wasCheckMate && !checkMate) {
+            nextTurn();
+        } else if (!wasCheckMate && checkMate) {
+            turn--;
+            currentPlayer = promotedColor;
+        }
+
         return newPiece;
     }
 }
